@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+frontend/dist/
+backend/dist/
+
+# Runtime uploads / outputs
+backend/uploads/
+backend/outputs/
+uploads/
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

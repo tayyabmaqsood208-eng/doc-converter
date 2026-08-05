@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../shared/*"],
+      "@/*": ["../frontend/src/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "workers/**/*",
+    "../shared/**/*",
+    "../frontend/src/data/**/*"
+  ]
+}
