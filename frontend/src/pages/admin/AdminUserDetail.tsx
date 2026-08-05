@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { UserUsageSummary } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
@@ -25,7 +26,7 @@ export const AdminUserDetail: React.FC = () => {
 
   const fetchUserDetail = () => {
     setIsLoading(true);
-    fetch(`http://localhost:5000/api/admin/users/${id}`, {
+    fetch(`${API_BASE_URL}/admin/users/${id}`, {
       headers: authClient.getAuthHeader()
     })
       .then(res => res.json())
@@ -43,7 +44,7 @@ export const AdminUserDetail: React.FC = () => {
 
   const handleChangePlan = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}/plan`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${id}/plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authClient.getAuthHeader() },
         body: JSON.stringify({ planId: selectedPlanId, reason: planReason })
@@ -61,7 +62,7 @@ export const AdminUserDetail: React.FC = () => {
 
   const handleGrantQuotaBump = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}/quota-bump`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${id}/quota-bump`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authClient.getAuthHeader() },
         body: JSON.stringify({ bumpAmount, reason: bumpReason })
@@ -81,7 +82,7 @@ export const AdminUserDetail: React.FC = () => {
     if (!summary?.user) return;
     const suspend = !summary.user.isSuspended;
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}/suspend`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${id}/suspend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authClient.getAuthHeader() },
         body: JSON.stringify({ suspend, reason: suspend ? 'Account suspended by admin' : 'Account reactivated' })
@@ -98,7 +99,7 @@ export const AdminUserDetail: React.FC = () => {
 
   const handleForcePurgeFiles = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}/purge-files`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${id}/purge-files`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authClient.getAuthHeader() },
         body: JSON.stringify({ reason: 'Admin manual file purge' })

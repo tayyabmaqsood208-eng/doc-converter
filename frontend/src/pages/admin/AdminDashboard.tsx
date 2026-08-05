@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { KpiData } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { Users, BarChart3, Shield, Sliders, FileText, Activity, AlertCircle, ArrowUpRight } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -9,7 +10,7 @@ export const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/admin/analytics/kpis', {
+    fetch(`${API_BASE_URL}/admin/analytics/kpis`, {
       headers: authClient.getAuthHeader()
     })
       .then(res => res.json())

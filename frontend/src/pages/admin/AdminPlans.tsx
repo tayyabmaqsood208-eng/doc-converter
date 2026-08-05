@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plan } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
@@ -14,7 +15,7 @@ export const AdminPlans: React.FC = () => {
 
   const fetchPlans = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/admin/plans', {
+    fetch(`${API_BASE_URL}/admin/plans`, {
       headers: authClient.getAuthHeader()
     })
       .then(res => res.json())

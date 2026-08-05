@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { UsageEvent, KpiData } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { Button } from '../../components/ui/Button';
 import { formatFileSize } from '../../lib/file-validation';
 import { ArrowLeft, Download, BarChart3, TrendingUp, PieChart, FileText } from 'lucide-react';
@@ -13,8 +14,8 @@ export const AdminAnalytics: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:5000/api/admin/analytics/kpis', { headers: authClient.getAuthHeader() }).then(r => r.json()),
-      fetch('http://localhost:5000/api/admin/analytics/usage-events', { headers: authClient.getAuthHeader() }).then(r => r.json())
+      fetch(`${API_BASE_URL}/admin/analytics/kpis`, { headers: authClient.getAuthHeader() }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/admin/analytics/usage-events`, { headers: authClient.getAuthHeader() }).then(r => r.json())
     ])
       .then(([kpiData, eventData]) => {
         setKpis(kpiData);
@@ -25,7 +26,7 @@ export const AdminAnalytics: React.FC = () => {
   }, []);
 
   const handleExportCsv = () => {
-    window.open('http://localhost:5000/api/admin/analytics/export-csv', '_blank');
+    window.open(`${API_BASE_URL}/admin/analytics/export-csv`, '_blank');
   };
 
   return (

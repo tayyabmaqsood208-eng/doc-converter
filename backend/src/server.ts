@@ -39,9 +39,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(rateLimiter);
 
-app.get('/', (_req, res) => {
-  res.json({ status: 'ok', service: 'DocFlow Backend API', frontendUrl: 'http://localhost:3000' });
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'DocFlow' });
 });
+
 
 // Multer storage setup with UUID filenames
 const storage = multer.diskStorage({
@@ -103,9 +104,40 @@ app.get('/api/download/:filename', (req, res) => {
   return res.download(filePath);
 });
 
+// Serve Vite frontend (single-service deploy) and SPA fallback.
+// Walk up from the compiled file since output depth varies with the tsconfig rootDir.
+function findFrontendDist(): string | null {
+  if (process.env.FRONTEND_DIST) return process.env.FRONTEND_DIST;
+  let dir = __dirname;
+  for (let i = 0; i < 6; i++) {
+    const candidate = path.join(dir, 'frontend', 'dist', 'index.html');
+    if (fs.existsSync(candidate)) return path.dirname(candidate);
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
+const frontendDist = findFrontendDist();
+if (frontendDist) {
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+} else {
+  app.get('/', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'DocFlow Backend API',
+      hint: 'Frontend dist not found. Run npm run build from repo root.'
+    });
+  });
+}
+
 // Start retention cleanup worker
 startCleanupWorker();
 
 app.listen(PORT, () => {
-  console.log(`[DocFlow Backend Server] Listening on http://localhost:${PORT}`);
+  console.log(`[DocFlow] Listening on http://localhost:${PORT}`);
 });

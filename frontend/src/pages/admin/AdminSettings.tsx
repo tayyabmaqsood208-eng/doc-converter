@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GlobalSettings } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { TOOLS_REGISTRY } from '@/data/tools-registry';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
@@ -18,7 +19,7 @@ export const AdminSettings: React.FC = () => {
 
   const fetchSettings = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/admin/settings', {
+    fetch(`${API_BASE_URL}/admin/settings`, {
       headers: authClient.getAuthHeader()
     })
       .then(res => res.json())
@@ -41,7 +42,7 @@ export const AdminSettings: React.FC = () => {
   const handleSaveSettings = async (newMaintenanceState?: boolean) => {
     const isMaintenanceActive = newMaintenanceState !== undefined ? newMaintenanceState : settings?.maintenanceMode;
     try {
-      const res = await fetch('http://localhost:5000/api/admin/settings', {
+      const res = await fetch(`${API_BASE_URL}/admin/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authClient.getAuthHeader() },
         body: JSON.stringify({

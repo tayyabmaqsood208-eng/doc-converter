@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { API_BASE_URL } from '../../lib/api-base';
 
 export const MaintenanceBanner: React.FC = () => {
   const [maintenance, setMaintenance] = useState<{ active: boolean; message: string }>({
@@ -8,7 +9,7 @@ export const MaintenanceBanner: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/admin/settings')
+    fetch(`${API_BASE_URL}/admin/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.settings && data.settings.maintenanceMode) {

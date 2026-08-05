@@ -1,6 +1,6 @@
 import { User } from '@shared/types';
+import { API_BASE_URL } from './api-base';
 
-const API_BASE_URL = 'http://localhost:5000/api';
 const TOKEN_KEY = 'docflow_auth_token';
 
 export const authClient = {

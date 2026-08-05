@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { Search, UserCheck, UserX, ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
@@ -21,7 +22,7 @@ export const AdminUsers: React.FC = () => {
     if (searchQuery) params.append('q', searchQuery);
     if (statusFilter) params.append('status', statusFilter);
 
-    fetch(`http://localhost:5000/api/admin/users?${params.toString()}`, {
+    fetch(`${API_BASE_URL}/admin/users?${params.toString()}`, {
       headers: authClient.getAuthHeader()
     })
       .then(res => res.json())

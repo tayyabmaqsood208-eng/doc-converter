@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { UserUsageSummary } from '@shared/types';
 import { authClient } from '../../lib/auth-client';
+import { API_BASE_URL } from '../../lib/api-base';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { Button } from '../../components/ui/Button';
 import { formatFileSize } from '../../lib/file-validation';
@@ -14,7 +15,7 @@ export const AccountPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/account/usage', {
+    fetch(`${API_BASE_URL}/account/usage`, {
       headers: authClient.getAuthHeader()
     })
       .then(res => res.json())
