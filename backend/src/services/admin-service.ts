@@ -5,7 +5,7 @@ import { planService } from './plan-service';
 
 let globalSettings: GlobalSettings = {
   maintenanceMode: false,
-  maintenanceMessage: 'DocFlow is currently undergoing scheduled maintenance. New conversions are temporarily paused. Please check back shortly 💕',
+  maintenanceMessage: 'DocFlow is currently undergoing scheduled maintenance. New conversions are temporarily paused. Please check back shortly.',
   globalAnonymousLimit: 5,
   disabledTools: []
 };

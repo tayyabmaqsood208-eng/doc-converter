@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { pdfOps } from '../services/pdf-ops';
-import { fileStore } from '../services/file-store';
 import { uploadGuard } from '../middleware/upload-guard';
+import { writeOutputFile } from '../services/output-helper';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const splitRouter = Router();
 
@@ -15,7 +16,7 @@ splitRouter.post('/split', uploadGuard, async (req: Request, res: Response) => {
     }
 
     const inputPath = files[0].path;
-    const pageRanges = req.body.pageRanges || 'all';
+    const pageRanges = String(req.body.pageRanges || 'all').slice(0, 200);
 
     const splitResults = await pdfOps.splitPdf(inputPath, pageRanges);
     fs.unlink(inputPath, () => {});
@@ -24,21 +25,17 @@ splitRouter.post('/split', uploadGuard, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No valid pages were extracted from the PDF.' });
     }
 
-    // Save primary split file
     const primary = splitResults[0];
-    const outputFilename = `split_${Date.now()}_${primary.filename}`;
-    const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-    fs.writeFileSync(outputPath, primary.bytes);
-    const stats = fs.statSync(outputPath);
+    const output = writeOutputFile(primary.bytes, '.pdf');
 
     return res.json({
-      jobId: `split-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outputFilename}`,
-      fileName: `DocFlow_${primary.filename}`,
-      fileSize: stats.size
+      downloadUrl: output.downloadUrl,
+      fileName: 'DocFlow_Split_Document.pdf',
+      fileSize: output.fileSize
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF split failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF split failed. Please try again.') });
   }
 });

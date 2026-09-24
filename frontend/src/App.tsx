@@ -6,6 +6,7 @@ import { Footer } from './components/layout/Footer';
 import { MaintenanceBanner } from './components/layout/MaintenanceBanner';
 import { LandingPage } from './pages/LandingPage';
 import { ToolPage } from './pages/ToolPage';
+import { ProtectedRoute, AdminRoute } from './components/auth/ProtectedRoute';
 
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
@@ -33,19 +34,73 @@ export const App: React.FC = () => {
             <Route path="/" element={<LandingPage />} />
             <Route path="/tools/:toolId" element={<ToolPage />} />
 
-            {/* Auth Routes */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/signup" element={<Signup />} />
-            <Route path="/auth/account" element={<AccountPage />} />
+            <Route
+              path="/auth/account"
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* Admin Panel Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/users/:id" element={<AdminUserDetail />} />
-            <Route path="/admin/plans" element={<AdminPlans />} />
-            <Route path="/admin/usage-analytics" element={<AdminAnalytics />} />
-            <Route path="/admin/audit-log" element={<AdminAuditLog />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:id"
+              element={
+                <AdminRoute>
+                  <AdminUserDetail />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/plans"
+              element={
+                <AdminRoute>
+                  <AdminPlans />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/usage-analytics"
+              element={
+                <AdminRoute>
+                  <AdminAnalytics />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/audit-log"
+              element={
+                <AdminRoute>
+                  <AdminAuditLog />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <AdminRoute>
+                  <AdminSettings />
+                </AdminRoute>
+              }
+            />
           </Routes>
         </main>
         <Footer />

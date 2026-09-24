@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { conversionEngine } from '../services/conversion-engine';
 import { uploadGuard } from '../middleware/upload-guard';
+import { buildSignedDownloadUrl } from '../services/download-token';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const convertOfficeToPdfRouter = Router();
 
@@ -21,13 +24,13 @@ convertOfficeToPdfRouter.post('/convert-office-to-pdf', uploadGuard, async (req:
     const stats = fs.statSync(pdfPath);
 
     return res.json({
-      jobId: `office-pdf-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${pdfFilename}`,
+      downloadUrl: buildSignedDownloadUrl(pdfFilename),
       fileName: 'DocFlow_Converted_Document.pdf',
       fileSize: stats.size
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `Office to PDF conversion failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'Conversion failed. Please try again.') });
   }
 });

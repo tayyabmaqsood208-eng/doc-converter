@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
-import { Lock, Mail, Sparkles, ShieldCheck } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +13,8 @@ export const Login: React.FC = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +28,9 @@ export const Login: React.FC = () => {
 
     try {
       const user = await login(email, password);
-      if (user.role === 'admin') {
+      if (from) {
+        navigate(from, { replace: true });
+      } else if (user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/auth/account');
@@ -36,16 +40,6 @@ export const Login: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoAdmin = () => {
-    setEmail('admin@docflow.com');
-    setPassword('admin123');
-  };
-
-  const fillDemoUser = () => {
-    setEmail('user@docflow.com');
-    setPassword('user123');
   };
 
   return (
@@ -60,77 +54,10 @@ export const Login: React.FC = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              background: 'var(--gradient-primary)',
-              borderRadius: '16px',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              boxShadow: '0 6px 18px rgba(255, 74, 128, 0.3)'
-            }}
-          >
-            <Sparkles size={28} />
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800 }}>Welcome Back ✨</h2>
+          <h2 style={{ fontSize: '28px', fontWeight: 800 }}>Sign in</h2>
           <p style={{ color: 'var(--color-ink-500)', fontSize: '15px', marginTop: '6px' }}>
-            Log in to manage your document conversions & quota
+            Access your account and conversion quota
           </p>
-        </div>
-
-        {/* Demo Login Quick Fill Buttons */}
-        <div
-          style={{
-            backgroundColor: 'var(--color-primary-light)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            marginBottom: '24px',
-            border: '1px solid var(--color-border)'
-          }}
-        >
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary)', marginBottom: '8px' }}>
-            ✨ Quick Logins:
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={fillDemoAdmin}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                borderRadius: '8px',
-                border: '1px solid var(--color-primary)',
-                backgroundColor: 'var(--color-surface)',
-                color: 'var(--color-primary)',
-                fontWeight: 700,
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              👑 Admin
-            </button>
-            <button
-              type="button"
-              onClick={fillDemoUser}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                borderRadius: '8px',
-                border: '1px solid var(--color-border)',
-                backgroundColor: 'var(--color-surface)',
-                color: 'var(--color-ink-900)',
-                fontWeight: 700,
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              💖 User
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -145,6 +72,7 @@ export const Login: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                autoComplete="email"
                 required
                 style={{
                   width: '100%',
@@ -170,6 +98,7 @@ export const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
                 style={{
                   width: '100%',
@@ -185,14 +114,14 @@ export const Login: React.FC = () => {
           </div>
 
           <Button variant="primary" size="lg" type="submit" isLoading={isLoading} style={{ marginTop: '8px', width: '100%' }}>
-            Log In 💕
+            Log In
           </Button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--color-ink-500)' }}>
-          Don't have an account yet?{' '}
+          Don&apos;t have an account?{' '}
           <Link to="/auth/signup" style={{ color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none' }}>
-            Sign Up Free ✨
+            Sign up
           </Link>
         </div>
       </div>

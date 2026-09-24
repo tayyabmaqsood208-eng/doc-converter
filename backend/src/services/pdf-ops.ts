@@ -126,21 +126,30 @@ export const pdfOps = {
   /**
    * Protect PDF document by setting metadata security permissions
    */
-  async protectPdf(filePath: string, userPassword: string): Promise<Uint8Array> {
+  /**
+   * NOTE: pdf-lib does not implement real PDF encryption.
+   * This marks the document and must not be advertised as cryptographic protection.
+   */
+  async protectPdf(filePath: string, _userPassword: string): Promise<Uint8Array> {
     const pdfBytes = fs.readFileSync(filePath);
     const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-    pdfDoc.setTitle(`Protected Document (Key: ${userPassword.substring(0, 3)}***)`);
-    pdfDoc.setSubject('Encrypted with DocFlow Security');
+    pdfDoc.setTitle('DocFlow Document');
+    pdfDoc.setSubject('Processed with DocFlow (metadata mark only — not encrypted)');
     return await pdfDoc.save();
   },
 
   /**
-   * Unlock password-protected PDF document
+   * Attempt to load a PDF. Real encrypted PDFs require a proper decryption library.
    */
   async unlockPdf(filePath: string, _password?: string): Promise<Uint8Array> {
     const pdfBytes = fs.readFileSync(filePath);
-    const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-    return await pdfDoc.save();
+    try {
+      const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: false });
+      return await pdfDoc.save();
+    } catch {
+      // Do not silently bypass encryption — fail closed for encrypted files.
+      throw new Error('This PDF appears encrypted. Password unlock is not fully supported yet.');
+    }
   },
 
   /**

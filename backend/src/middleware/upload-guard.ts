@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import FileType from 'file-type';
 import fs from 'fs';
-import { TOOLS_REGISTRY } from '../../../frontend/src/data/tools-registry';
+import { TOOLS_REGISTRY } from '../../../shared/tools-registry';
 
 const ALLOWED_MIMES_BY_EXT: Record<string, string[]> = {
   '.pdf': ['application/pdf'],

@@ -12,3 +12,15 @@ services:
         value: production
       - key: PORT
         value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Administrator
+      - key: FRONTEND_URL
+        sync: false
+      - key: TRUST_PROXY
+        value: "true"

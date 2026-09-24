@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { conversionEngine } from '../services/conversion-engine';
 import { uploadGuard } from '../middleware/upload-guard';
+import { buildSignedDownloadUrl } from '../services/download-token';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const convertPdfToOfficeRouter = Router();
 
@@ -14,8 +17,12 @@ convertPdfToOfficeRouter.post('/convert-pdf-to-office', uploadGuard, async (req:
     }
 
     const inputPath = files[0].path;
-    const targetFormat = (req.body.targetFormat || 'docx') as 'docx' | 'pptx' | 'xlsx';
-    
+    const requested = String(req.body.targetFormat || 'docx').toLowerCase();
+    const targetFormat = (['docx', 'pptx', 'xlsx'].includes(requested) ? requested : 'docx') as
+      | 'docx'
+      | 'pptx'
+      | 'xlsx';
+
     const convertedPath = await conversionEngine.convertPdfToOffice(inputPath, targetFormat);
     fs.unlink(inputPath, () => {});
 
@@ -23,13 +30,13 @@ convertPdfToOfficeRouter.post('/convert-pdf-to-office', uploadGuard, async (req:
     const stats = fs.statSync(convertedPath);
 
     return res.json({
-      jobId: `pdf-office-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outFilename}`,
+      downloadUrl: buildSignedDownloadUrl(outFilename),
       fileName: `DocFlow_Converted_Document.${targetFormat}`,
       fileSize: stats.size
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF to Office conversion failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'Conversion failed. Please try again.') });
   }
 });

@@ -84,7 +84,6 @@ export const Navbar: React.FC = () => {
             }}
           >
             Doc<span style={{ color: 'var(--color-primary)' }}>Flow</span>
-            <span style={{ fontSize: '16px', marginLeft: '4px' }}>✨</span>
           </span>
         </Link>
 

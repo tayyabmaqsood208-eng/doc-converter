@@ -1,25 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
 
-const ipRequestCounts = new Map<string, { count: number; resetTime: number }>();
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_REQUESTS = 100;
+type Counter = { count: number; resetTime: number };
 
-export function rateLimiter(req: Request, res: Response, next: NextFunction) {
-  const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
-  const now = Date.now();
+function createLimiter(windowMs: number, maxRequests: number, message: string) {
+  const counts = new Map<string, Counter>();
 
-  const record = ipRequestCounts.get(ip);
-  if (!record || now > record.resetTime) {
-    ipRequestCounts.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    return next();
-  }
+  return function limiter(req: Request, res: Response, next: NextFunction) {
+    const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
+    const now = Date.now();
 
-  if (record.count >= MAX_REQUESTS) {
-    return res.status(429).json({
-      error: 'Rate limit exceeded. Too many requests from this IP, please try again in a few minutes.'
-    });
-  }
+    const record = counts.get(ip);
+    if (!record || now > record.resetTime) {
+      counts.set(ip, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
 
-  record.count += 1;
-  next();
+    if (record.count >= maxRequests) {
+      return res.status(429).json({ error: message });
+    }
+
+    record.count += 1;
+    next();
+  };
 }
+
+/** Global soft limit for all API traffic */
+export const rateLimiter = createLimiter(
+  15 * 60 * 1000,
+  200,
+  'Too many requests. Please try again in a few minutes.'
+);
+
+/** Stricter limit for login / signup (credential stuffing defense) */
+export const authRateLimiter = createLimiter(
+  15 * 60 * 1000,
+  20,
+  'Too many login attempts. Please wait a few minutes and try again.'
+);

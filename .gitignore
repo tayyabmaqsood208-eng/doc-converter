@@ -27,3 +27,9 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# local tsc / vite emit junk
+tsc-*.txt
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts

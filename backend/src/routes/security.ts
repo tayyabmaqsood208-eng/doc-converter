@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { pdfOps } from '../services/pdf-ops';
-import { fileStore } from '../services/file-store';
 import { uploadGuard } from '../middleware/upload-guard';
+import { writeOutputFile } from '../services/output-helper';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const securityRouter = Router();
 
@@ -14,29 +15,29 @@ securityRouter.post('/protect', uploadGuard, async (req: Request, res: Response)
       return res.status(400).json({ error: 'No PDF file uploaded for password protection.' });
     }
 
-    const password = req.body.password;
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
     if (!password || password.trim().length === 0) {
       return res.status(400).json({ error: 'Please enter a valid password to encrypt this document.' });
+    }
+    if (password.length > 128) {
+      return res.status(400).json({ error: 'Password is too long.' });
     }
 
     const inputPath = files[0].path;
     const protectedBytes = await pdfOps.protectPdf(inputPath, password);
     fs.unlink(inputPath, () => {});
 
-    const outputFilename = `protected_${Date.now()}.pdf`;
-    const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-    fs.writeFileSync(outputPath, protectedBytes);
-    const stats = fs.statSync(outputPath);
+    const output = writeOutputFile(protectedBytes, '.pdf');
 
     return res.json({
-      jobId: `protect-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outputFilename}`,
+      downloadUrl: output.downloadUrl,
       fileName: 'DocFlow_Protected_Document.pdf',
-      fileSize: stats.size
+      fileSize: output.fileSize
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF encryption failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF encryption failed. Please try again.') });
   }
 });
 
@@ -47,32 +48,29 @@ securityRouter.post('/unlock', uploadGuard, async (req: Request, res: Response) 
       return res.status(400).json({ error: 'No PDF file uploaded for decryption.' });
     }
 
-    const password = req.body.password;
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
     const inputPath = files[0].path;
 
     try {
       const unlockedBytes = await pdfOps.unlockPdf(inputPath, password);
       fs.unlink(inputPath, () => {});
 
-      const outputFilename = `unlocked_${Date.now()}.pdf`;
-      const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-      fs.writeFileSync(outputPath, unlockedBytes);
-      const stats = fs.statSync(outputPath);
+      const output = writeOutputFile(unlockedBytes, '.pdf');
 
       return res.json({
-        jobId: `unlock-${Date.now()}`,
+        jobId: uuidv4(),
         status: 'completed',
-        downloadUrl: `/download/${outputFilename}`,
+        downloadUrl: output.downloadUrl,
         fileName: 'DocFlow_Unlocked_Document.pdf',
-        fileSize: stats.size
+        fileSize: output.fileSize
       });
-    } catch (passErr) {
+    } catch {
       fs.unlink(inputPath, () => {});
       return res.status(400).json({
-        error: 'This file is password-protected — enter the correct password to unlock and continue.'
+        error: 'Unable to unlock this PDF. Check the password or try a different file.'
       });
     }
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF decryption failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF decryption failed. Please try again.') });
   }
 });

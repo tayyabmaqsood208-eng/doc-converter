@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { pdfOps } from '../services/pdf-ops';
-import { fileStore } from '../services/file-store';
 import { uploadGuard } from '../middleware/upload-guard';
+import { writeOutputFile } from '../services/output-helper';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const editRouter = Router();
 
@@ -14,14 +15,21 @@ editRouter.post('/edit', uploadGuard, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No PDF file uploaded for editing.' });
     }
 
-    let annotations = [];
+    let annotations: Array<{ pageNum: number; text?: string; x: number; y: number }> = [];
     if (req.body.annotations) {
       try {
-        annotations = typeof req.body.annotations === 'string'
-          ? JSON.parse(req.body.annotations)
-          : req.body.annotations;
-      } catch (e) {
-        annotations = [{ pageNum: 1, text: String(req.body.annotations), x: 50, y: 700 }];
+        const parsed =
+          typeof req.body.annotations === 'string' ? JSON.parse(req.body.annotations) : req.body.annotations;
+        if (Array.isArray(parsed)) {
+          annotations = parsed.slice(0, 50).map((ann: any) => ({
+            pageNum: Math.max(1, Number(ann.pageNum) || 1),
+            text: typeof ann.text === 'string' ? ann.text.slice(0, 200) : undefined,
+            x: Number(ann.x) || 50,
+            y: Number(ann.y) || 700
+          }));
+        }
+      } catch {
+        annotations = [{ pageNum: 1, text: String(req.body.annotations).slice(0, 200), x: 50, y: 700 }];
       }
     }
 
@@ -29,19 +37,16 @@ editRouter.post('/edit', uploadGuard, async (req: Request, res: Response) => {
     const editedBytes = await pdfOps.editPdf(inputPath, annotations);
     fs.unlink(inputPath, () => {});
 
-    const outputFilename = `edited_${Date.now()}.pdf`;
-    const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-    fs.writeFileSync(outputPath, editedBytes);
-    const stats = fs.statSync(outputPath);
+    const output = writeOutputFile(editedBytes, '.pdf');
 
     return res.json({
-      jobId: `edit-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outputFilename}`,
+      downloadUrl: output.downloadUrl,
       fileName: 'DocFlow_Edited_Document.pdf',
-      fileSize: stats.size
+      fileSize: output.fileSize
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF edit failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF edit failed. Please try again.') });
   }
 });

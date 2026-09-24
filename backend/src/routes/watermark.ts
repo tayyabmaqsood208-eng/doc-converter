@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { pdfOps } from '../services/pdf-ops';
-import { fileStore } from '../services/file-store';
 import { uploadGuard } from '../middleware/upload-guard';
+import { writeOutputFile } from '../services/output-helper';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const watermarkRouter = Router();
 
@@ -14,24 +15,21 @@ watermarkRouter.post('/watermark', uploadGuard, async (req: Request, res: Respon
       return res.status(400).json({ error: 'No PDF file uploaded for watermarking.' });
     }
 
-    const watermarkText = req.body.watermarkText || 'CONFIDENTIAL';
+    const watermarkText = String(req.body.watermarkText || 'CONFIDENTIAL').slice(0, 80);
     const inputPath = files[0].path;
     const watermarkedBytes = await pdfOps.watermarkPdf(inputPath, watermarkText);
     fs.unlink(inputPath, () => {});
 
-    const outputFilename = `watermarked_${Date.now()}.pdf`;
-    const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-    fs.writeFileSync(outputPath, watermarkedBytes);
-    const stats = fs.statSync(outputPath);
+    const output = writeOutputFile(watermarkedBytes, '.pdf');
 
     return res.json({
-      jobId: `watermark-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outputFilename}`,
+      downloadUrl: output.downloadUrl,
       fileName: 'DocFlow_Watermarked_Document.pdf',
-      fileSize: stats.size
+      fileSize: output.fileSize
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF watermark failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF watermark failed. Please try again.') });
   }
 });

@@ -1,6 +1,6 @@
 import { UsageEvent, KpiData } from '../../../shared/types';
 import { authService } from './auth-service';
-import { TOOLS_REGISTRY } from '../../../frontend/src/data/tools-registry';
+import { TOOLS_REGISTRY } from '../../../shared/tools-registry';
 
 // Sample usage events store
 const usageEventsStore: UsageEvent[] = [

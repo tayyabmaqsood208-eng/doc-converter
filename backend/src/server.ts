@@ -1,8 +1,10 @@
+import './load-env';
+
+import path from 'path';
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { fileStore } from './services/file-store';
@@ -10,6 +12,7 @@ import { jobQueue } from './services/job-queue';
 import { rateLimiter } from './middleware/rate-limiter';
 import { quotaGuard } from './middleware/quota-guard';
 import { startCleanupWorker } from '../workers/cleanup-worker';
+import { verifyDownloadToken } from './services/download-token';
 
 import { authRouter } from './routes/auth';
 import { accountRouter } from './routes/account';
@@ -33,24 +36,58 @@ import { imageResizerRouter } from './routes/image-resizer';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS & JSON parsing
-app.use(cors({ origin: '*' }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+if (process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Same-origin / server-to-server / curl with no Origin
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0) {
+        // Single-service deploy: allow any origin only in development
+        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+        return callback(null, true); // same-origin SPA served by this server
+      }
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true
+  })
+);
+
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-XSS-Protection', '0');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(rateLimiter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'DocFlow' });
 });
 
-
-// Multer storage setup with UUID filenames
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, fileStore.getUploadDir());
   },
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).slice(0, 20);
     cb(null, `${uuidv4()}${ext}`);
   }
 });
@@ -60,21 +97,17 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }
 });
 
-// Middleware for uploading files
 app.use('/api', upload.array('files', 20));
 
-// Auth & Account Routes
 app.use('/api', authRouter);
 app.use('/api', accountRouter);
 
-// Admin Routes (gated server-side by admin-guard)
 app.use('/api', adminUsersRouter);
 app.use('/api', adminPlansRouter);
 app.use('/api', adminAnalyticsRouter);
 app.use('/api', adminAuditRouter);
 app.use('/api', adminSettingsRouter);
 
-// Tool Conversion Routes (gated by quotaGuard)
 app.use('/api', quotaGuard, mergeRouter);
 app.use('/api', quotaGuard, splitRouter);
 app.use('/api', quotaGuard, compressRouter);
@@ -86,26 +119,38 @@ app.use('/api', quotaGuard, securityRouter);
 app.use('/api', quotaGuard, editRouter);
 app.use('/api', quotaGuard, imageResizerRouter);
 
-// Job Status Polling Endpoint
 app.get('/api/jobs/:id', (req, res) => {
+  // Job IDs are UUIDs — treat as capability URLs; do not leak internal task details
   const job = jobQueue.getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
   }
-  return res.json(job);
+  return res.json({
+    jobId: job.jobId,
+    status: job.status,
+    progress: job.progress,
+    downloadUrl: job.downloadUrl,
+    fileName: job.fileName,
+    fileSize: job.fileSize,
+    error: job.status === 'failed' ? 'Processing failed. Please try again.' : undefined
+  });
 });
 
-// File Download Endpoint
 app.get('/api/download/:filename', (req, res) => {
-  const filePath = fileStore.getDownloadPath(req.params.filename);
-  if (!fs.existsSync(filePath)) {
+  const rawName = path.basename(String(req.params.filename || ''));
+  const token = typeof req.query.token === 'string' ? req.query.token : undefined;
+
+  if (!verifyDownloadToken(token, rawName)) {
+    return res.status(403).json({ error: 'Invalid or expired download link.' });
+  }
+
+  const filePath = fileStore.getDownloadPath(rawName);
+  if (!filePath || !fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'Requested file has expired or was deleted.' });
   }
   return res.download(filePath);
 });
 
-// Serve Vite frontend (single-service deploy) and SPA fallback.
-// Walk up from the compiled file since output depth varies with the tsconfig rootDir.
 function findFrontendDist(): string | null {
   if (process.env.FRONTEND_DIST) return process.env.FRONTEND_DIST;
   let dir = __dirname;
@@ -135,7 +180,6 @@ if (frontendDist) {
   });
 }
 
-// Start retention cleanup worker
 startCleanupWorker();
 
 app.listen(PORT, () => {

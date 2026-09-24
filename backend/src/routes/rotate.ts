@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { pdfOps } from '../services/pdf-ops';
-import { fileStore } from '../services/file-store';
 import { uploadGuard } from '../middleware/upload-guard';
+import { writeOutputFile } from '../services/output-helper';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const rotateRouter = Router();
 
@@ -15,23 +16,21 @@ rotateRouter.post('/rotate', uploadGuard, async (req: Request, res: Response) =>
     }
 
     const angle = parseInt(req.body.rotationAngle || '90', 10);
+    const safeAngle = [90, 180, 270, -90, -180, -270].includes(angle) ? angle : 90;
     const inputPath = files[0].path;
-    const rotatedBytes = await pdfOps.rotatePdf(inputPath, angle);
+    const rotatedBytes = await pdfOps.rotatePdf(inputPath, safeAngle);
     fs.unlink(inputPath, () => {});
 
-    const outputFilename = `rotated_${Date.now()}.pdf`;
-    const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-    fs.writeFileSync(outputPath, rotatedBytes);
-    const stats = fs.statSync(outputPath);
+    const output = writeOutputFile(rotatedBytes, '.pdf');
 
     return res.json({
-      jobId: `rotate-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outputFilename}`,
+      downloadUrl: output.downloadUrl,
       fileName: 'DocFlow_Rotated_Document.pdf',
-      fileSize: stats.size
+      fileSize: output.fileSize
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF rotate failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF rotate failed. Please try again.') });
   }
 });

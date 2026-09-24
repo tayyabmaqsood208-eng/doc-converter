@@ -9,13 +9,13 @@ export const MaintenanceBanner: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/admin/settings`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.settings && data.settings.maintenanceMode) {
+    fetch(`${API_BASE_URL}/public/status`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.maintenanceMode) {
           setMaintenance({
             active: true,
-            message: data.settings.maintenanceMessage || 'System maintenance active.'
+            message: data.maintenanceMessage || 'System maintenance active.'
           });
         }
       })

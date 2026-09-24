@@ -25,8 +25,22 @@ export const AdminAnalytics: React.FC = () => {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const handleExportCsv = () => {
-    window.open(`${API_BASE_URL}/admin/analytics/export-csv`, '_blank');
+  const handleExportCsv = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/analytics/export-csv`, {
+        headers: authClient.getAuthHeader()
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'docflow-usage.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Could not export CSV. Please try again.');
+    }
   };
 
   return (

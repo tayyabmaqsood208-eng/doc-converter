@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
-import { User, Mail, Lock, Heart } from 'lucide-react';
+import { User, Mail, Lock } from 'lucide-react';
 
 export const Signup: React.FC = () => {
   const [name, setName] = useState('');
@@ -19,6 +19,10 @@ export const Signup: React.FC = () => {
     e.preventDefault();
     if (!name || !email || !password) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
 
@@ -47,25 +51,9 @@ export const Signup: React.FC = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              background: 'var(--gradient-primary)',
-              borderRadius: '16px',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              boxShadow: '0 6px 18px rgba(255, 74, 128, 0.3)'
-            }}
-          >
-            <Heart size={28} />
-          </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800 }}>Create Your Account ✨</h2>
+          <h2 style={{ fontSize: '28px', fontWeight: 800 }}>Create your account</h2>
           <p style={{ color: 'var(--color-ink-500)', fontSize: '15px', marginTop: '6px' }}>
-            Get 50 free document conversions every month!
+            Get started with free monthly conversions
           </p>
         </div>
 
@@ -81,6 +69,8 @@ export const Signup: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Doe"
+                autoComplete="name"
+                maxLength={80}
                 required
                 style={{
                   width: '100%',
@@ -106,6 +96,7 @@ export const Signup: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                autoComplete="email"
                 required
                 style={{
                   width: '100%',
@@ -122,7 +113,7 @@ export const Signup: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px' }}>
-              Create Password
+              Password
             </label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} color="var(--color-ink-500)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
@@ -130,7 +121,9 @@ export const Signup: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                minLength={8}
                 required
                 style={{
                   width: '100%',
@@ -143,17 +136,20 @@ export const Signup: React.FC = () => {
                 }}
               />
             </div>
+            <p style={{ fontSize: '12px', color: 'var(--color-ink-500)', marginTop: '6px' }}>
+              Use at least 8 characters with a letter and a number.
+            </p>
           </div>
 
           <Button variant="primary" size="lg" type="submit" isLoading={isLoading} style={{ marginTop: '8px', width: '100%' }}>
-            Create Account 💕
+            Create Account
           </Button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--color-ink-500)' }}>
           Already have an account?{' '}
           <Link to="/auth/login" style={{ color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none' }}>
-            Log In ✨
+            Log in
           </Link>
         </div>
       </div>

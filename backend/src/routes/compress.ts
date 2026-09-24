@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { pdfOps } from '../services/pdf-ops';
-import { fileStore } from '../services/file-store';
 import { uploadGuard } from '../middleware/upload-guard';
+import { writeOutputFile } from '../services/output-helper';
+import { clientError } from '../utils/safe-error';
+import { v4 as uuidv4 } from 'uuid';
 
 export const compressRouter = Router();
 
@@ -18,19 +19,16 @@ compressRouter.post('/compress', uploadGuard, async (req: Request, res: Response
     const compressedBytes = await pdfOps.compressPdf(inputPath);
     fs.unlink(inputPath, () => {});
 
-    const outputFilename = `compressed_${Date.now()}.pdf`;
-    const outputPath = path.join(fileStore.getOutputDir(), outputFilename);
-    fs.writeFileSync(outputPath, compressedBytes);
-    const stats = fs.statSync(outputPath);
+    const output = writeOutputFile(compressedBytes, '.pdf');
 
     return res.json({
-      jobId: `compress-${Date.now()}`,
+      jobId: uuidv4(),
       status: 'completed',
-      downloadUrl: `/download/${outputFilename}`,
+      downloadUrl: output.downloadUrl,
       fileName: 'DocFlow_Compressed_Document.pdf',
-      fileSize: stats.size
+      fileSize: output.fileSize
     });
-  } catch (err: any) {
-    return res.status(500).json({ error: `PDF compress failed: ${err.message}` });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: clientError(err, 'PDF compress failed. Please try again.') });
   }
 });
